@@ -53,7 +53,7 @@ async function handleMRSRequest(cache, within, request) {
       const key = { segment: 'search', id: JSON.stringify({ lat, lon, range }) }
       const entry = await shim(cb => cache.get(key, cb))
       if (entry !== null) {
-        return entry;
+        return entry.item;
       }
       if (!inside(point([lon, lat]), within)) {
         const failure = {
@@ -67,10 +67,10 @@ async function handleMRSRequest(cache, within, request) {
       const matches = []
       console.log('caching features...')
       for (let feature of cadastres) {
-        console.log(feature)
-        const key = { segment: 'object', id: feature.id }
+        console.log('==>', feature.id)
+        const key = { segment: 'object', id: (feature.id).toString() }
         console.log('A')
-        await shim(cb => cache.set(key, JSON.stringify(feature), TTL, cb))        
+        await shim(cb => cache.set(key, feature, TTL, cb))        
         console.log('B')
       }
       console.log('constructing result...')
@@ -91,7 +91,7 @@ async function handleMRSRequest(cache, within, request) {
           })
         }
       }
-      await shim(cb => cache.set(key, result, cb))
+      await shim(cb => cache.set(key, result, TTL, cb))
       return result;
 
     default:

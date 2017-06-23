@@ -4,7 +4,9 @@ const querystring = require('querystring')
 const buffer = require('@turf/buffer')
 const point = require('@turf/helpers').point
 const joi = require('joi')
+const proj4 = require('proj4')
 
+const project = proj4(proj4.defs['EPSG:3857'], proj4.defs['EPSG:4326'])
 const MAPSERVER = 'https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Cadastre/MapServer'
 const LAYER = 9
 
@@ -88,10 +90,18 @@ module.exports = async function findNSWCadastralBoundaries(lat, lng, range) {
       id: objectid,
       geometry: {
         type: 'Polygon',
-        coordinates: object.feature.geometry.rings,
+        coordinates: wm2gps(object.feature.geometry.rings)
       },
     })  
   }
   
   return result
+}
+
+function wm2gps(rings) {
+  return rings.map(
+    ring => ring.map(
+      position => project.forward(position)
+    )
+  )
 }

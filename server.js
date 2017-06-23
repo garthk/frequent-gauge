@@ -3,19 +3,21 @@
 
 const getNSWStateBoundary = require('./nsw-boundary')
 const findNSWCadastralBoundaries = require('./nsw-cadastre')
-const simplify = require('@turf/simplify')
+const schema = require('./mrs-schema')
 const express = require('express')
 const os = require('os')
-const point = require('@turf/helpers').point
-const bbox = require('@turf/bbox')
-const inside = require('@turf/inside')
 const bodyParser = require('body-parser')
 const joi = require('joi')
-const schema = require('./mrs-schema')
 const boom = require('boom')
 const Catbox = require('catbox-memory')
 const shim = require('./shim')
-const centerOfMass= require('@turf/center-of-mass')
+const bbox = require('@turf/bbox')
+const distance = require('@turf/distance')
+const inside = require('@turf/inside')
+const center = require('@turf/center')
+const simplify = require('@turf/simplify')
+const { point } = require('@turf/helpers')
+const { coordAll } = require('@turf/meta')
 
 const CACHE_SIZE = 10 * 1024 * 1024
 const TTL = 3600 * 1000
@@ -69,9 +71,7 @@ async function handleMRSRequest(cache, within, request) {
       for (let feature of cadastres) {
         console.log('==>', feature.id)
         const key = { segment: 'object', id: (feature.id).toString() }
-        console.log('A')
         await shim(cb => cache.set(key, feature, TTL, cb))        
-        console.log('B')
       }
       console.log('constructing result...')
       const result = {
@@ -79,14 +79,15 @@ async function handleMRSRequest(cache, within, request) {
           matches: cadastres.length,
           matching: cadastres.map(f => {
             console.log('constructing MRS result for', f)
-            const middle = centerOfMass(f)
+            const middle = center(f)
+            const range = Math.max(... coordAll(f).map(lonlat => distance(middle, point(lonlat), 'kilometres'))) * 1000
             return {
-              lat: middle.geometry.coordinates[1],
-              lon: middle.geometry.coordinates[0],
+              lat: middle.geometry.coordinates[1].toFixed(6),
+              lon: middle.geometry.coordinates[0].toFixed(6),
               ele: 0,
-              range: 10,
+              range: range.toPrecision(1),
               FOAD: false,
-              Service_Point: `https://${process.env.PROJECT_NAME}.glitch.me//object/${f.id}`,
+              Service_Point: `https://${process.env.PROJECT_NAME}.glitch.me/object/${f.id}`,
             }
           })
         }
@@ -99,6 +100,18 @@ async function handleMRSRequest(cache, within, request) {
    }
 }
 
+/**
+ * Handle an MRS request
+ */
+async function handleObjectRequest(cache, objectid) {
+  const key = { segment: 'object', id: objectid.toString() }
+  const entry = await shim(cb => cache.get(key, cb))        
+  if (entry === null) {
+    throw boom.notFound(`object ${objectid}`)
+  }
+  return entry.item
+}
+  
 function makeApp(cache, nsw) {
   const app = express()
   app.use(express.static('public'));
@@ -117,10 +130,13 @@ function makeApp(cache, nsw) {
       .then(response => joi.attempt(response, schema.response))
       .then(response => res.send(response), fail)
   })
-  app.get('/info', function (req, res) {
-    const info = { versions: process.versions };
-    Object.keys(os).filter(k => typeof os[k] === 'function').forEach(k => info[k] = os[k]())
-    res.send(JSON.stringify(info, null, 2))
+  app.get('/object/*', function (req, res, fail) {
+    const objectid = req.path.split('/')[2]
+    if (!objectid) {
+      fail(boom.notFound())
+    } else {
+      handleObjectRequest(cache, objectid).then(ob => res.type('application/geo+json').send(ob), fail)
+    }
   })
   app.use(function errorHandler(err, req, res, next) {
     if (err && err.isBoom) {

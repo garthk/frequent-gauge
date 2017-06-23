@@ -1,0 +1,38 @@
+{
+  "name": "frequent-gauge",
+  "version": "0.0.1",
+  "description": "Hooking up Mixed Reality Service (MRS) to existing geospatial services",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "boom": "^5.1.0",
+    "catbox-memory": "^2.0.4",
+    "express": "^4.15.3",
+    "isomorphic-fetch": "^2.2.1",
+    "joi": "^10.6.0",
+    "@turf/bbox": "^4.4.0",
+    "@turf/buffer": "^4.4.0",
+    "@turf/center-of-mass": "^4.4.0",
+    "@turf/helpers": "^4.4.0",
+    "@turf/line-chunk": "^4.4.0",
+    "@turf/simplify": "^4.4.0",
+    "@turf/inside": "^4.4.0",
+    "@turf/within": "^4.4.0"
+  },
+  "engines": {
+    "node": "8.1.x"
+  },
+  "repository": {
+    "url": "https://glitch.com/edit/#!/frequent-gauge"
+  },
+  "license": "MIT",
+  "keywords": [
+    "glitch",
+    "mixed-reality-service",
+    "mrs",
+    "node"
+  ]
+}

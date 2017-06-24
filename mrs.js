@@ -73,5 +73,5 @@ async function findCadastres(cache, lat, lon, range) {
   const cachedGetObject = cacheify(getObject, { cache })
 
   const objectIds = await cachedFindObjects(lat, lon, range)
-  return throttle(objectIds, CONCURRENCY, cachedGetObject)
+  return throttle(objectIds.map(id => id.toString()), CONCURRENCY, cachedGetObject)
 }

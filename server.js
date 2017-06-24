@@ -2,6 +2,8 @@ const getNSWStateBoundary = require('./nsw-boundary')
 const schema = require('./mrs-schema')
 const shim = require('./shim')
 const handleMRSRequest = require('./mrs')
+const cacheify = require('./cacheify')
+const { getObject } = require('./nsw-cadastre')
 
 const Catbox = require('catbox-memory')
 const bodyParser = require('body-parser')
@@ -18,18 +20,6 @@ const bbox = require('@turf/bbox')
 const simplify = require('@turf/simplify')
 
 const CACHE_SIZE = 10 * 1024 * 1024
-
-/**
- * Handle a request for one of the `Service_Point` values we issued
- */
-async function handleObjectRequest(cache, objectid) {
-  const key = { segment: 'object', id: objectid.toString() }
-  const entry = await shim(cb => cache.get(key, cb))
-  if (entry === null) {
-    throw boom.notFound(`object ${objectid}`)
-  }
-  return entry.item
-}
 
 async function getREADME() {
   const raw = await shim(cb => fs.readFile(path.join(__dirname, 'README.md'), 'utf8', cb))
@@ -72,7 +62,8 @@ function makeApp(cache, nsw) {
     if (!objectid) {
       fail(boom.notFound(`${method} ${path}`, { method, path }))
     } else {
-      handleObjectRequest(cache, objectid).then(ob => res.type('application/geo+json').send(ob), fail)
+    const cachedGetObject = cacheify(getObject, { cache })
+    cachedGetObject(objectid).then(ob => res.type('application/geo+json').send(ob), fail)
     }
   })
 

@@ -2,11 +2,11 @@ require('isomorphic-fetch') // add global fetch https://caniuse.com/#search=fetc
 
 const assert = require('assert')
 const boom = require('boom') // construct Errors with HTTP semantics
+const fs = require('fs')
 const joi = require('joi') // validate and correct JSON data
 const path = require('path')
-const url = require('url')
 const shim = require('./shim')
-const fs = require('fs')
+const url = require('url')
 
 // I could drop a simplified boundary GeoJSON in as source code, but then we'd
 // miss out on an opportunity to show people how easy it is to get public

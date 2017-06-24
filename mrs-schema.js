@@ -1,5 +1,6 @@
 const joi = require('joi')
 
+// sort order: MRS specification draft 3
 const lat = joi.number().min(-90).max(90).unit('degrees').description('WGS84 latitude')
 const lon = joi.number().min(-180).max(180).unit('degrees').description('WGS84 longitude')
 const ele = joi.number().min(-180).max(180).unit('metres').description('elevation above WGS ellipsoid')
@@ -7,8 +8,6 @@ const range = joi.number().min(0).max(1000000).unit('metres').description('searc
 const FOAD = joi.boolean().description('strict privacy indicator')
 const Service_Point = joi.string().uri().description('service point')
 const verification = joi.any().description('verification data')
-
-// https://mixedrealitysystem.org/spec/Mixed_Reality_Service_Specification_THIRD_DRAFT.pdf
 
 const entry = joi.object({
   lat,

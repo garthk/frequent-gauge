@@ -1,10 +1,10 @@
 require('isomorphic-fetch') // add global fetch https://caniuse.com/#search=fetch
 
-const querystring = require('querystring')
 const buffer = require('@turf/buffer')
-const point = require('@turf/helpers').point
 const joi = require('joi')
+const point = require('@turf/helpers').point
 const proj4 = require('proj4')
+const querystring = require('querystring')
 const throttle = require('./throttle')
 
 const project = proj4(proj4.defs['EPSG:3857'], proj4.defs['EPSG:4326'])

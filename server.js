@@ -18,6 +18,7 @@ const center = require('@turf/center')
 const simplify = require('@turf/simplify')
 const { point } = require('@turf/helpers')
 const { coordAll } = require('@turf/meta')
+const https = require('https')
 
 const CACHE_SIZE = 10 * 1024 * 1024
 const TTL = 3600 * 1000
@@ -69,7 +70,6 @@ async function handleMRSRequest(cache, within, request) {
       const matches = []
       console.log('caching features...')
       for (let feature of cadastres) {
-        console.log('==>', feature.id)
         const key = { segment: 'object', id: (feature.id).toString() }
         await shim(cb => cache.set(key, feature, TTL, cb))        
       }
@@ -78,7 +78,6 @@ async function handleMRSRequest(cache, within, request) {
         response: {
           matches: cadastres.length,
           matching: cadastres.map(f => {
-            console.log('constructing MRS result for', f)
             const middle = center(f)
             const range = Math.max(... coordAll(f).map(lonlat => distance(middle, point(lonlat), 'kilometres'))) * 1000
             return {
@@ -185,6 +184,7 @@ async function main() {
 }
 
 if (!module.parents) {
+  https.globalAgent.maxSockets = 5
   main().then(() => undefined).catch(err => {
     console.error(err.stack);
     process.exit(1);

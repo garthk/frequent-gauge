@@ -10,9 +10,13 @@ const Catbox = require('catbox-memory')
 const bodyParser = require('body-parser')
 const boom = require('boom')
 const express = require('express')
+const fs = require('fs')
 const https = require('https')
 const joi = require('joi')
+const markdown = require('markdown').markdown
+const nunjucks = require('nunjucks')
 const os = require('os')
+const path = require('path')
 
 const bbox = require('@turf/bbox')
 const center = require('@turf/center')
@@ -112,12 +116,23 @@ async function handleObjectRequest(cache, objectid) {
   }
   return entry.item
 }
-  
+
+async function getREADME() {
+  const raw = await shim(cb => fs.readFile(path.join(__dirname, 'README.md'), 'utf8', cb))
+  return markdown.toHTML(raw)
+}
+
 function makeApp(cache, nsw) {
   const app = express()
   app.use(express.static('public'));
-  app.get('/', function (req, res) {
-    res.sendFile(__dirname + '/views/index.html')
+  nunjucks.configure(path.join(__dirname, 'views'), {
+      autoescape: true,
+      express: app
+  });
+  app.get('/', function (req, res, fail) {
+    getREADME().then(readme => {
+      res.render('index.html', { readme })
+    }, fail)
   })
   app.get('/nsw.json', function (req, res) {
     res.send(JSON.stringify(nsw))

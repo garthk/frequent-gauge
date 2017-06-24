@@ -5,7 +5,7 @@ A randomly named experiment on hooking up existing geospatial services to the
 
 * The [NSW State Boundary][NSW_Bounds] from the PSMA Administrative Boundaries
   dataset made available via `data.gov.au`
-  
+
 * [NSW cadastral boundaries][NSW_Cadastre] from the Lands NSW ESRI MapServer at
   `maps.six.nsw.gov.au`
 

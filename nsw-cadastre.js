@@ -5,12 +5,15 @@ const joi = require('joi')
 const point = require('@turf/helpers').point
 const proj4 = require('proj4')
 const querystring = require('querystring')
-const throttle = require('./throttle')
 
 const project = proj4(proj4.defs['EPSG:3857'], proj4.defs['EPSG:4326'])
 const MAPSERVER = 'https://maps.six.nsw.gov.au/arcgis/rest/services/public/NSW_Cadastre/MapServer'
 const LAYER = 9
-const CONCURRENCY = 3
+
+module.exports = {
+  findObjects,
+  getObject
+}
 
 const is200OK = joi.object({
   status: joi.valid(200)
@@ -46,9 +49,9 @@ const getObjectResponse = joi.object({
  * @param {Number} lat - WGS84 latitude in degrees
  * @param {Number} lng - WGS84 longitude in degrees
  * @param {Number} range - radius in metres
- * @returns {Promise<GeoJSON.Feature<any>[]>}
+ * @returns {Promise<string[]>}
  */
-module.exports = async function findNSWCadastralBoundaries(lat, lng, range) {
+async function findObjects(lat, lng, range) {
   const center = point([ lng, lat ])
   const queryBoundary = buffer(center, range / 1000, 'kilometres')
   const request = {
@@ -73,30 +76,37 @@ module.exports = async function findNSWCadastralBoundaries(lat, lng, range) {
     }
   })
   joi.assert(resp, is200OK, 'GeoServer response')
-  
+
   const idsResponse = await resp.json()
   joi.assert(idsResponse, searchResponse, 'GeoServer search esponse')
-  
-  const objectids = idsResponse.features.map(f => f.attributes.objectid)
-  return throttle(objectids, CONCURRENCY, async objectid => {
-    const oburi = `${MAPSERVER}/${LAYER}/${objectid}?f=json`;
-    console.log(oburi)
-    const resp = await fetch(oburi)
-    joi.assert(resp, is200OK, 'GeoServer response')
-    const object = await resp.json()
-    joi.assert(object, getObjectResponse, 'GeoServer object response')
-    return {
-      type: 'Feature',
-      id: objectid,
-      properties: {
-        lotid: object.feature.attributes.lotidstring
-      },
-      geometry: {
-        type: 'Polygon',
-        coordinates: wm2gps(object.feature.geometry.rings)
-      }
-    } 
-  })
+
+  return idsResponse.features.map(f => f.attributes.objectid)
+}
+
+/**
+ * Get cadastral boundaries from the Lands NSW ESRI MapServer.
+ *
+ * @param {Number} objectid - the object identifier
+ * @returns {Promise<GeoJSON.Feature>}
+ */
+async function getObject(objectid) {
+  const oburi = `${MAPSERVER}/${LAYER}/${objectid}?f=json`;
+  console.log(oburi)
+  const resp = await fetch(oburi)
+  joi.assert(resp, is200OK, 'GeoServer response')
+  const object = await resp.json()
+  joi.assert(object, getObjectResponse, 'GeoServer object response')
+  return {
+    type: 'Feature',
+    id: objectid,
+    properties: {
+      lotid: object.feature.attributes.lotidstring
+    },
+    geometry: {
+      type: 'Polygon',
+      coordinates: wm2gps(object.feature.geometry.rings)
+    }
+  }
 }
 
 function wm2gps(rings) {
